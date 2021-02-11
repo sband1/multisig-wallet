@@ -3,6 +3,7 @@ pragma solidity ^0.5.0;
 contract MultiSignatureWallet {
 
   event Submission(uint indexed transactionId);
+  event Confirmation(address indexed sender, uint indexed transactionId);
 
     struct Transaction {
       bool executed;
@@ -62,7 +63,17 @@ contract MultiSignatureWallet {
 
     /// @dev Allows an owner to confirm a transaction.
     /// @param transactionId Transaction ID.
-    function confirmTransaction(uint transactionId) public {}
+
+    mapping (uint => mapping (address => bool)) public confirmations;
+
+    function confirmTransaction(uint transactionId) public {
+        require(isOwner[msg.sender]);
+        require(transactions[transactionId].destination != address(0));
+        require(confirmations[transactionId][msg.sender] == false);
+        confirmations[transactionId][msg.sender] = true;
+        emit Confirmation(msg.sender, transactionId);
+        executeTransaction(transactionId);
+    }
 
     /// @dev Allows an owner to revoke a confirmation for a transaction.
     /// @param transactionId Transaction ID.
