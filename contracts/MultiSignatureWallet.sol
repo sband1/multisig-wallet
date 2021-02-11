@@ -2,6 +2,8 @@ pragma solidity ^0.5.0;
 
 contract MultiSignatureWallet {
 
+  event Submission(uint indexed transactionId);
+
     struct Transaction {
       bool executed;
       address destination;
@@ -84,6 +86,14 @@ contract MultiSignatureWallet {
     /// @param data Transaction data payload.
     /// @return Returns transaction ID.
     function addTransaction(address destination, uint value, bytes memory data) internal returns (uint transactionId) {
-
+        transactionId = transactionCount;
+        transactions[transactionId] = Transaction({
+            destination: destination,
+            value: value,
+            data: data,
+            executed: false
+        });
+        transactionCount += 1;
+        emit Submission(transactionId);
     }
 }
