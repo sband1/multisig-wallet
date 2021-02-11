@@ -4,6 +4,8 @@ contract MultiSignatureWallet {
 
   event Submission(uint indexed transactionId);
   event Confirmation(address indexed sender, uint indexed transactionId);
+  event Execution(uint indexed transactionId);
+  event ExecutionFailure(uint indexed transactionId);
 
     struct Transaction {
       bool executed;
@@ -81,7 +83,20 @@ contract MultiSignatureWallet {
 
     /// @dev Allows anyone to execute a confirmed transaction.
     /// @param transactionId Transaction ID.
-    function executeTransaction(uint transactionId) public {}
+    function executeTransaction(uint transactionId) public {
+         require(transactions[transactionId].executed == false);
+        if (isConfirmed(transactionId)) {
+            Transaction storage t = transactions[transactionId];  // using the "storage" keyword makes "t" a pointer to storage
+            t.executed = true;
+            (bool success, bytes memory returnedData) = t.destination.call.value(t.value)(t.data);
+            if (success)
+                emit Execution(transactionId);
+            else {
+                emit ExecutionFailure(transactionId);
+                t.executed = false;
+            }
+        }
+    }
 
 		/*
 		 * (Possible) Helper Functions
@@ -89,7 +104,15 @@ contract MultiSignatureWallet {
     /// @dev Returns the confirmation status of a transaction.
     /// @param transactionId Transaction ID.
     /// @return Confirmation status.
-    function isConfirmed(uint transactionId) internal view returns (bool) {}
+    function isConfirmed(uint transactionId) internal view returns (bool) {
+        uint count = 0;
+        for (uint i=0; i<owners.length; i++) {
+            if (confirmations[transactionId][owners[i]])
+                count += 1;
+            if (count == required)
+                return true;
+        }
+    }
 
     /// @dev Adds a new transaction to the transaction mapping, if transaction does not exist yet.
     /// @param destination Transaction target address.
