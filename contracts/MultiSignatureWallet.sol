@@ -9,6 +9,13 @@ contract MultiSignatureWallet {
       bytes data;
     }
 
+    uint public transactionCount;
+    mapping (uint => Transaction) public transactions;
+
+    address[] public owners;
+    uint public required;
+    mapping (address => bool) public isOwner;
+
     event Deposit(address indexed sender, uint value);
 
     /// @dev Fallback function allows to deposit ether.
@@ -21,20 +28,35 @@ contract MultiSignatureWallet {
 	}
     }
 
+    modifier validRequirement(uint ownerCount, uint _required) {
+        if (   _required > ownerCount || _required == 0 || ownerCount == 0)
+            revert();
+        _;
+    }
     /*
      * Public functions
      */
     /// @dev Contract constructor sets initial owners and required number of confirmations.
     /// @param _owners List of initial owners.
     /// @param _required Number of required confirmations.
-    constructor(address[] memory _owners, uint _required) public {}
+    constructor(address[] memory _owners, uint _required) public validRequirement(_owners.length, _required) {
+        for (uint i=0; i<_owners.length; i++) {
+            isOwner[_owners[i]] = true;
+        }
+        owners = _owners;
+        required = _required;
+    }
 
     /// @dev Allows an owner to submit and confirm a transaction.
     /// @param destination Transaction target address.
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return Returns transaction ID.
-    function submitTransaction(address destination, uint value, bytes memory data) public returns (uint transactionId) {}
+    function submitTransaction(address destination, uint value, bytes memory data) public returns (uint transactionId) {
+        require(isOwner[msg.sender]);
+        transactionId = addTransaction(destination, value, data);
+        confirmTransaction(transactionId);
+    }
 
     /// @dev Allows an owner to confirm a transaction.
     /// @param transactionId Transaction ID.
@@ -61,5 +83,7 @@ contract MultiSignatureWallet {
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return Returns transaction ID.
-    function addTransaction(address destination, uint value, bytes memory data) internal returns (uint transactionId) {}
+    function addTransaction(address destination, uint value, bytes memory data) internal returns (uint transactionId) {
+
+    }
 }
